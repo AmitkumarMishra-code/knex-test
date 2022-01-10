@@ -2,16 +2,16 @@ require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const bcrypt = require('bcrypt')
-const { checkLotRecordsLastUpdated } = require('.')
+const { getFirstProcessToScrape, listAllProcessStatus } = require('.')
 
 const app = express()
 
 app.use(cors())
 app.use(authchecker)
 
-app.get('/', async(req, res) => {
+app.get('/next', async(req, res) => {
   try{
-    const lotToScrape = await checkLotRecordsLastUpdated()
+    const lotToScrape = await getFirstProcessToScrape()
     if(lotToScrape){
       res.status(200).json(lotToScrape)
     }
@@ -22,6 +22,20 @@ app.get('/', async(req, res) => {
   catch(err){
     res.status(400).json({message: err.message})
   }
+})
+
+app.get('/all', async(req, res) => {
+  try{
+    const list = await listAllProcessStatus()
+    res.status(200).json(list)
+  }
+  catch(err){
+    res.status(400).json({message: err.message})
+  }
+})
+
+app.all(/.*/, (req, res) => {
+  res.status(404).json({ message: 'Invalid endpoint.' })
 })
 
 async function authchecker(req, res, next){

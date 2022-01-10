@@ -93,13 +93,40 @@ const checkPreviousAttemptForErrors = (lotNumber, comparisonData = processScrapi
     return { status: false }
 }
 
+const getManualOverrideStatus = (lotDetails, comparisonData = recordsLastUpdated) => {
+    const currentLotStatus = {}
+    for (let process of comparisonData) {
+        currentLotStatus[process.processName] = !process.data[lotDetails.lotNumber] || lotDetails.lastUpdated > process.data[lotDetails.lotNumber] ? true : false
+    }
+    return currentLotStatus
+}
 
-function calculateScrapingStatus(triggerLotsLastUpdated, comparisonData){
+const getOutdatedDataStatus = (lotNumber, comparisonData = recordsLastUpdated) => {
+    const currentLotStatus = {}
+    for (let process of comparisonData) {
+        currentLotStatus[process.processName] = !process.data[lotNumber] || Date.parse(process.data[lotNumber]) <= NINETY_DAYS_AGO ? true : false
+    }
+    return currentLotStatus
+}
+
+const getPreviousAttemptStatus = (lotNumber, comparisonData = processScrapingStatus) => {
+    const currentLotStatus = {}
+    for (let process of comparisonData) {
+        currentLotStatus[process.processName] = !process.data[lotNumber] || process.data[lotNumber] === 'ERROR' ? true : false
+    }
+    return currentLotStatus
+}
+
+
+function calculateScrapingStatus(
+    triggerLots = triggerLotsLastUpdated, 
+    comparisonData = {recordsLastUpdated, processScrapingStatus}
+    ){
     
-    for (lot in triggerLotsLastUpdated) {
+    for (lot in triggerLots) {
   
       const manualOverrideCheck = checkForManualOverride(
-        {lastUpdated : triggerLotsLastUpdated[lot], lotNumber: lot}, 
+        {lastUpdated : triggerLots[lot], lotNumber: lot}, 
         comparisonData ? comparisonData.recordsLastUpdated : undefined
         )
       if (manualOverrideCheck.status) {
@@ -126,10 +153,48 @@ function calculateScrapingStatus(triggerLotsLastUpdated, comparisonData){
     return null
   }
 
+  function calculateScrapingStatusAll(
+    triggerLots = triggerLotsLastUpdated, 
+    comparisonData = {recordsLastUpdated, processScrapingStatus}
+    ){
+    const resultList = {}
+    for (lot in triggerLots) {
+        const currentLotStatus = {}
+
+        const manualOverrideCheck = getManualOverrideStatus(
+            {lastUpdated : triggerLots[lot], lotNumber: lot}, 
+            comparisonData ? comparisonData.recordsLastUpdated : undefined
+            )
+  
+        const outdatedDataCheck = getOutdatedDataStatus(
+            lot, 
+            comparisonData ? comparisonData.recordsLastUpdated : undefined
+            )
+
+        for (let process in manualOverrideCheck){
+            if(manualOverrideCheck[process] || outdatedDataCheck[process]){
+                currentLotStatus[process] = true
+            }
+            else{
+                currentLotStatus[process] = false
+            }
+        }
+
+        const previousAttemptErrorCheck = getPreviousAttemptStatus(
+            lot, 
+            comparisonData ? comparisonData.processScrapingStatus : undefined
+            )
+
+        resultList[lot] = {...currentLotStatus, ...previousAttemptErrorCheck} 
+    }
+    return resultList
+  }
+
 module.exports = {
     checkForManualOverride,
     fetchData,
     checkForOutdatedData,
     checkPreviousAttemptForErrors,
-    calculateScrapingStatus
+    calculateScrapingStatus,
+    calculateScrapingStatusAll
 }

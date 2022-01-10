@@ -1,28 +1,17 @@
-const { getTriggerLotsLastUpdated } = require("./db_calls")
-const { fetchData, calculateScrapingStatus } = require("./utils")
+const { fetchData, calculateScrapingStatus, calculateScrapingStatusAll } = require("./utils")
 
 
-async function checkLotRecordsLastUpdated() {
-
+async function getFirstProcessToScrape() {
   await fetchData()
-
-    const triggerLotsLastUpdated = (await getTriggerLotsLastUpdated())
-        .reduce((map, lot) => {
-            map[lot.lotNumber] = lot.lastUpdated
-            return map
-        }, {})
-
-    return calculateScrapingStatus(triggerLotsLastUpdated)
-
+  return calculateScrapingStatus()
 }
 
-// async function main() {
-//     const lotToScrape = await checkLotRecordsLastUpdated()
-//     console.log(lotToScrape)
-// }
-
-// main()
+async function listAllProcessStatus() {
+  await fetchData()
+  return calculateScrapingStatusAll()
+}
 
 module.exports = {
-  checkLotRecordsLastUpdated
+  getFirstProcessToScrape,
+  listAllProcessStatus
 }
