@@ -14,7 +14,7 @@ const {
 
 const NINETY_DAYS_AGO = Date.now() - (90 * 86400000)
 
-let dataToProcessTime, dataToProcessStatus, lotRecordsLastUpdated, landRecordsLastUpdated, contactsLastUpdated, filesLastUpdated, triggerLotsLastUpdated, streetViewScrapingStatus, satelliteViewScrapingStatus, cadastralMapScrapingStatus, lotRecordsScrapingStatus, landRecordsScrapingStatus, contactsScrapingStatus;
+let recordsLastUpdated, processScrapingStatus, lotRecordsLastUpdated, landRecordsLastUpdated, contactsLastUpdated, filesLastUpdated, triggerLotsLastUpdated, streetViewScrapingStatus, satelliteViewScrapingStatus, cadastralMapScrapingStatus, lotRecordsScrapingStatus, landRecordsScrapingStatus, contactsScrapingStatus;
 
 const createMap = (data, field) => {
     return data.reduce((map, lot) => {
@@ -46,14 +46,14 @@ const fetchData = async() => {
 
     contactsScrapingStatus = createMap(await getContactsScrapingStatus(), 'result')
 
-    dataToProcessTime = [
+    recordsLastUpdated = [
         { data: lotRecordsLastUpdated, processName: "LotRecords" },
         { data: landRecordsLastUpdated, processName: "Land" },
         { data: contactsLastUpdated, processName: "Contacts" },
         { data: filesLastUpdated, processName: "Files" }
     ]
 
-    dataToProcessStatus = [
+    processScrapingStatus = [
         { data: lotRecordsScrapingStatus, processName: "LotRecords" },
         { data: landRecordsScrapingStatus, processName: "Land" },
         { data: contactsScrapingStatus, processName: "Contacts" },
@@ -66,37 +66,71 @@ const fetchData = async() => {
 
 
 
-const checkForManualOverride = (lotNumber) => {
-    for (let process of dataToProcessTime) {
-        if (triggerLotsLastUpdated[lotNumber] >= process.data[lotNumber]) {
-            return { status: true, process: process.processName, lotNumber: lotNumber }
+const checkForManualOverride = (lotDetails, comparisonData = recordsLastUpdated) => {
+    for (let process of comparisonData) {
+        if (!process.data[lotDetails.lotNumber] || lotDetails.lastUpdated > process.data[lotDetails.lotNumber]) {
+            return { status: true, process: process.processName }
         }
     }
     return { status: false }
 }
 
-const checkForOutdatedData = (lotNumber) => {
-    for (let process of dataToProcessTime) {
-        if (Date.parse(process.data[lotNumber]) <= NINETY_DAYS_AGO) {
-            return { status: true, process: process.processName, lotNumber: lotNumber }
+const checkForOutdatedData = (lotNumber, comparisonData = recordsLastUpdated) => {
+    for (let process of comparisonData) {
+        if (!process.data[lotNumber] || Date.parse(process.data[lotNumber]) <= NINETY_DAYS_AGO) {
+            return { status: true, process: process.processName }
         }
     }
     return { status: false }
 }
 
-const checkPreviousAttemptForErrors = (lotNumber) => {
-    for (let process of dataToProcessStatus) {
-        if (process.data[lotNumber] === 'ERROR') {
-            return { status: true, process: process.processName, lotNumber: lotNumber }
+const checkPreviousAttemptForErrors = (lotNumber, comparisonData = processScrapingStatus) => {
+    for (let process of comparisonData) {
+        if (!process.data[lotNumber] || process.data[lotNumber] === 'ERROR') {
+            return { status: true, process: process.processName }
         }
     }
     return { status: false }
 }
 
+
+function calculateScrapingStatus(triggerLotsLastUpdated, comparisonData){
+    console.log(triggerLotsLastUpdated)
+    
+    for (lot in triggerLotsLastUpdated) {
+  
+      const manualOverrideCheck = checkForManualOverride(
+        {lastUpdated : triggerLotsLastUpdated[lot], lotNumber: lot}, 
+        comparisonData ? comparisonData.recordsLastUpdated : undefined
+        )
+      if (manualOverrideCheck.status) {
+          return { processName: manualOverrideCheck.process, lotNumber:lot, type: "Manual Override" }
+      }
+  
+      const outdatedDataCheck = checkForOutdatedData(
+        lot, 
+        comparisonData ? comparisonData.recordsLastUpdated : undefined
+        )
+      if(outdatedDataCheck.status){
+        return { processName: outdatedDataCheck.process, lotNumber: lot, type: "Outdated Data" }
+      }
+  
+      const previousAttemptErrorCheck = checkPreviousAttemptForErrors(
+        lot, 
+        comparisonData ? comparisonData.processScrapingStatus : undefined
+        )
+      if(previousAttemptErrorCheck.status){
+        return { processName: previousAttemptErrorCheck.process, lotNumber: lot, type: "Error" }
+      }
+  
+    }
+    return null
+  }
 
 module.exports = {
     checkForManualOverride,
     fetchData,
     checkForOutdatedData,
-    checkPreviousAttemptForErrors
+    checkPreviousAttemptForErrors,
+    calculateScrapingStatus
 }
