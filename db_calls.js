@@ -16,7 +16,7 @@ const getLandRecordsLastUpdated = async() => {
       .leftJoin('Land', 'TriggerLotsRaw.lotNumber', 'Land.lotNumber')
       .select(
           'TriggerLotsRaw.lotNumber as lotNumber',
-          'Land.lastUpdated as lastUpdated',
+          'Land.lastScrapedDate as lastUpdated',
       )
 }
 
@@ -25,16 +25,16 @@ const getContactsLastUpdated = async() => {
       .leftJoin('Contacts', 'TriggerLotsRaw.lotNumber', 'Contacts.lotNumber')
       .select(
           'TriggerLotsRaw.lotNumber as lotNumber',
-          'Contacts.lastUpdated as lastUpdated',
+          'Contacts.scrapedTimestamp as lastUpdated',
       )
 }
 
 const getFilesLastUpdated = async() => {
   return await db('TriggerLotsRaw')
-      .leftJoin('Files', 'TriggerLotsRaw.lotNumber', 'Files.lotNumber')
+      .leftJoin('Files', 'TriggerLotsRaw.lotNumber', 'Files.identifier')
       .select(
           'TriggerLotsRaw.lotNumber as lotNumber',
-          'Files.lastUpdated as lastUpdated',
+          'Files.timestamp as lastUpdated',
       )
 }
 
@@ -53,9 +53,7 @@ const getStreetViewScrapingStatus = async() => {
           'TriggerLotsRaw.lotNumber as lotNumber',
           'ScrapingAttempts.result as result'
       )
-      .where({
-          source: 'streetView'
-      })
+      .where('ScrapingAttempts.source','=','streetView')
 }
 
 const getSatelliteViewScrapingStatus = async() => {
@@ -65,9 +63,7 @@ const getSatelliteViewScrapingStatus = async() => {
           'TriggerLotsRaw.lotNumber as lotNumber',
           'ScrapingAttempts.result as result'
       )
-      .where({
-          source: 'satelliteView'
-      })
+      .where('ScrapingAttempts.source','=','satelliteView')
 }
 
 const getCadastralMapScrapingStatus = async() => {
@@ -77,9 +73,7 @@ const getCadastralMapScrapingStatus = async() => {
           'TriggerLotsRaw.lotNumber as lotNumber',
           'ScrapingAttempts.result as result'
       )
-      .where({
-          source: 'cadastralMap'
-      })
+      .where('ScrapingAttempts.source','=','cadastralMap')
 }
 
 const getLotRecordsScrapingStatus = async() => {
@@ -89,9 +83,7 @@ const getLotRecordsScrapingStatus = async() => {
           'TriggerLotsRaw.lotNumber as lotNumber',
           'ScrapingAttempts.result as result'
       )
-      .where({
-          source: 'lot_register'
-      })
+      .where('ScrapingAttempts.source','=','lotRegister')
 }
 
 const getLandRecordsScrapingStatus = async() => {
@@ -101,9 +93,7 @@ const getLandRecordsScrapingStatus = async() => {
           'TriggerLotsRaw.lotNumber as lotNumber',
           'ScrapingAttempts.result as result'
       )
-      .where({
-          source: 'land_register'
-      })
+      .where('ScrapingAttempts.source','=','landRegister')
 }
 
 const getContactsScrapingStatus = async() => {
@@ -113,10 +103,11 @@ const getContactsScrapingStatus = async() => {
           'TriggerLotsRaw.lotNumber as lotNumber',
           'ScrapingAttempts.result as result'
       )
-      .where({
-          source: 'business_register'
-      })
+      .where('ScrapingAttempts.source','=','business_register')
+      .orWhere('ScrapingAttempts.source','=','businessRegister')
 }
+
+const destroy = async() => await db.destroy()
 
 module.exports = {
   getStreetViewScrapingStatus,
@@ -129,5 +120,6 @@ module.exports = {
   getCadastralMapScrapingStatus,
   getLotRecordsScrapingStatus,
   getLandRecordsScrapingStatus,
-  getContactsScrapingStatus
+  getContactsScrapingStatus,
+  destroy
 }

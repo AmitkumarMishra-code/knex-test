@@ -16,9 +16,13 @@ async function checkLotRecordsLastUpdated() {
 
 }
 
-async function main() {
-    const lotToScrape = await checkLotRecordsLastUpdated()
-    console.log(lotToScrape)
-}
+// async function main() {
+//     const lotToScrape = await checkLotRecordsLastUpdated()
+//     console.log(lotToScrape)
+// }
 
-main()
+// main()
+
+module.exports = {
+  checkLotRecordsLastUpdated
+}

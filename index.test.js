@@ -1,9 +1,11 @@
+const { destroy } = require("./db_calls");
 const { comparisonData, processScrapingStatus, comparisonData1, processScrapingStatus1 } = require("./testData");
 const { checkForManualOverride, checkForOutdatedData, checkPreviousAttemptForErrors, fetchData, calculateScrapingStatus } = require("./utils")
 
 describe("Determine scraping statuses", () => {
 
   beforeAll(() => jest.useFakeTimers())
+  jest.setTimeout(20000)
 
   it("finds manual override", () => {
 
@@ -71,7 +73,7 @@ describe("Determine scraping statuses", () => {
   it("finds first process where lotNumber has not been scraped from database data", async() => {
     
     await fetchData()
-    const lotDetails = {lotNumber: '11112', lastUpdated: '2021-12-31'}
+    const lotDetails = {lotNumber: '1010102', lastUpdated: '2021-12-31'}
 
     const status = checkForManualOverride(lotDetails)
 
@@ -81,6 +83,9 @@ describe("Determine scraping statuses", () => {
       })
   })
 
-  afterAll(() => jest.useRealTimers())
+  afterAll(async() => {
+    jest.useRealTimers()
+    await destroy()
+  })
 
 })  

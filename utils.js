@@ -95,7 +95,6 @@ const checkPreviousAttemptForErrors = (lotNumber, comparisonData = processScrapi
 
 
 function calculateScrapingStatus(triggerLotsLastUpdated, comparisonData){
-    console.log(triggerLotsLastUpdated)
     
     for (lot in triggerLotsLastUpdated) {
   
